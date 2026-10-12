@@ -44,8 +44,44 @@ class TeamAssigner:
             bg_cluster = max(set(corners), key=corners.count) # {0,1}
             player_cluster = 1 - bg_cluster
             return km.cluster_centers_[player_cluster]  
-            
 
+        def fit_team_colors(self,frames_and_boxes):
+            colors=[]
+            for frame,boxes in frames_and_boxes:
+                for box in boxes:
+                    color=self.get_player_color(frame,box)
+                    if color is not None:
+                        colors.append(color)
+
+            if len(colors)<4:
+                print(f'Not enough colors to fit team colors')
+
+            colors=np.array(colors)
+
+            km_initial=KMeans(n_clusters=3, init="k-means++", n_init=10,random_state=0).fit(colors)
+            counts=np.bincount(km_initial.labels_,minlength=3) # (0,0,0,1,1,1,2,1,0,2,1,)
+
+            top_two=np.argsort(counts)[-2:] # [1,2]
+            team1_center=km_initial.cluster_centers_[top_two[0]]
+            team2_center=km_initial.cluster_centers_[top_two[1]]
+
+            for team_id,center in [(1,team1_center),(2,team2_center)]:
+                b,g,r=center
+                # Green dominant -> vibrant neon green
+                if g>b+25 and g>r+15:
+                    self.team_colors[team_id]=np.array([40,245,60],dtype=np.float32)
+                # High brightness all channels -> crisp pure white
+                elif min(b,g,r)>170:
+                    self.team_colors[team_id]=np.array([255,255,255],dtype=np.float32)
+                elif r>g+30 and r>b+30:
+                    self.team_colors[team_id]=np.array([0,0,255],dtype=np.float32)
+                elif b>g+30 and b>r+30:
+                    self.team_colors[team_id]=np.array([255,80,0],dtype=np.float32)
+                else:
+                    self.team_colors[team_id]=center.astype(np.float32) # row detected color
+
+            self.kmeans=KMeans(n_clusters=2,init=np.array[team1_center,team2_center],n_init=1,random_state=0)
+            self.kmeans.fit(np.array([team1_center,team2_center]))
 
 
 
