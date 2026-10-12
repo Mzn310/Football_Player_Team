@@ -104,6 +104,28 @@ class TeamAssigner:
             v=self.votes.get(track_id)
             return Counter(v).most_common(1)[0][0] if v else None
 
+        def draw_player(frame,bbox,color,track_id):
+            x1,y1,x2,y2=map(int,bbox)
+            cx,w=(x1+x2)//2,x2-x1
+            color=tuple(int(c) for c in color)
+
+            # Dark outer border for contrast against green pitch
+            cv2.ellipse(frame,(cx,y2),(int(w*0.6),int(0.2*w)),0,-45,235,(0,0,0),4,cv2.LINE_AA)
+            # Main team color ellipse
+            cv2.ellipse(frame,(cx,y2),(int(w*0.6),int(0.2*w)),0,-45,235,color,2,color,2,cv2.LINE_AA)
+
+            # ID badge with clean 1px border
+            rw,rh=40,20
+            rx1,ry1=cx-rw//2,y2+10
+            cv2.rectangle(frame,(rx1,ry1),(rx1+rw,ry1+rh),color,cv2.FILLED)
+            cv2.rectangle(frame,(rx1,ry1),(rx1+rw,ry1+rh),(0,0,0),1)
+
+            text_color=(0,0,0) if sum(color)>380 else (255,255,255)
+            cv2.putText(frame,str(track_id),(rx1+6,ry1+15),cv2.FONT_HERSHEY_SIMPLEX,0.55,text_color,2)
+
+
+
+
 def main():
     args=Config
 
