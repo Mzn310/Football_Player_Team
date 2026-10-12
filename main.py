@@ -83,9 +83,26 @@ class TeamAssigner:
             self.kmeans=KMeans(n_clusters=2,init=np.array[team1_center,team2_center],n_init=1,random_state=0)
             self.kmeans.fit(np.array([team1_center,team2_center]))
 
+        def get_player_team(self,frame,bbox,track_id) ->int|None:
+            if track_id in self.player_team:
+                return self.player_team[track_id]
 
+            color=self.get_player_color(frame,bbox)
+            if color is None:
+                return self._current_vote(track_id)
 
+            team=int(self.kmeans.predict(color.reshape(1,-1)[0]))+1
+            self.votes[track_id].append(team)
 
+            if len(self.votes[track_id])>=self.vote_frames:
+                self.player_team[track_id]=Counter(self.votes[track_id]).most_common(1)[0][0]
+                del self.votes[track_id]
+                return self.player_team[track_id]
+            return self._current_vote(track_id)
+
+        def _current_vote(self,track_id):
+            v=self.votes.get(track_id)
+            return Counter(v).most_common(1)[0][0] if v else None
 
 def main():
     args=Config
